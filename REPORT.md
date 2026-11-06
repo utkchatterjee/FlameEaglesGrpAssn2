@@ -4,10 +4,13 @@
 
 | Name | Roll No. |
 |------|----------|
-| _________ | _________ |
-| _________ | _________ |
+| Moguluri Sai Siddharda | B24DS018 |
+| Samarth Goyal | B24DS026 |
+| Utkarsh Chatterjee | B24CS050 |
+| Yash Bhardwaj | B24CS053 |
+| Adarsh Satyam | B24CS002 |
 
-**Tools note.** Problem 1 uses self-written Python code for exact inference, ancestral sampling, MLE/BDeu estimation and the associated plots. Problem 2 uses **Fast Downward 24.06.1** to translate the PDDL files and run Greedy Best-First Search and A*. The four planner logs and four `.plan` files record those runs. For Task 4, each plan was independently replayed step by step against its corresponding PDDL initial state and action definitions; all action preconditions and final goals passed. VAL was not used. SWI-Prolog was unavailable for Problem 3, as noted in that section.
+
 
 ---
 
@@ -122,7 +125,7 @@ BDeu with equivalent sample size 10 gives each cell a pseudo-count of 10 / (#sta
 
 **E.2 Largest error at 500 samples.** In our seed-42 dataset the largest error is **Q6** for both estimators (0.0310 MLE, 0.0340 Bayesian); Q4 is second (0.0230 / 0.0257). Q4 is nevertheless the query that depends on the least data: its evidence (Weather=Cold and Occupancy=High) appears in only **56 of 500 rows**, versus 250 for Q2, 146 for Q3 and 296 for Q5/Q6. Fewer rows means a noisier estimate of the AC and Energy entries it relies on, and an error in one rare CPT row is not averaged out. To check that this is not an accident of one seed, `multi_seed_check.py` repeats everything for 100 seeds: at N = 500, Q4 has the largest average error (MLE 0.0294, Bayesian 0.0282) against about 0.018–0.020 for every other query. So Q4 is the consistently hardest query, even though one particular draw can make another query look worse.
 
-**E.3 Which estimator is better for small data?** In principle Bayesian estimation should help on small data: the BDeu pseudo-counts smooth sparse counts and prevent probabilities of exactly 0 or 1, which MLE can produce when a parent configuration is rare. In our experiment the benefit is small. In the seed-42 run, MLE is slightly better at N = 500 (0.0159 vs 0.0177) and Bayesian is slightly better at N = 5000. Averaged over 100 seeds at N = 500 the two are essentially tied (MLE 0.02065 vs Bayesian 0.02018; Bayesian wins in 55% of seeds). The reason is that every parent configuration here still has at least about 50 samples, and the prior adds only ≈1.7 pseudo-samples per AC row, so it barely moves the estimates. Where the prior does act (the rare Cold rows) it helps, e.g. Cold/Low: expert 0.05, MLE 0.018, BDeu 0.032. However, the prior shrinks every estimate toward 0.5, which slightly hurts rows whose true value is large (Hot/High). The advantage of Bayesian estimation would be much larger with sparser data or more parents. At 20000 samples the two estimators are identical.
+**E.3 Which estimator is better for small data?** In principle Bayesian estimation should help on small data: the BDeu pseudo-counts smooth sparse counts and prevent probabilities of exactly 0 or 1, which MLE can produce when a parent configuration is rare. In our experiment the benefit is small. In the seed-42 run, MLE is slightly better at N = 500 (0.0159 vs 0.0177) and Bayesian is slightly better at N = 5000. Averaged over 100 seeds at N = 500 the two are essentially tied (MLE 0.02065 vs Bayesian 0.02018; Bayesian wins in 55% of seeds). The reason is that every parent configuration here still has at least about 50 samples, and the prior adds only ≈1.7 pseudo-samples per AC row, so it barely moves the estimates. Where the prior does act (the rare Cold rows) it helps, e.g. Cold/Low: expert 0.05, MLE 0.018, BDeu 0.032. However, the prior shrinks every estimate toward 0.5, which slightly hurts rows whose true value is large (Hot/High). The advantage of Bayesian estimation would be much larger with sparser data or more parents. At 20000 samples the two estimators are nearly identical, but not exactly: the mean absolute errors are 0.00351 (MLE) and 0.00352 (Bayesian), and the query estimates still differ slightly.
 
 ---
 
@@ -146,7 +149,7 @@ The original problem places Curiosity at Base, Drill1 at SiteE, and Rocks 1–5 
 
 Fast Downward 24.06.1 was used for both scenarios. The satisficing configuration was Greedy Best-First Search with the FF heuristic (`lazy_greedy([ff()])`). The optimal configuration was A* with the admissible LM-cut heuristic (`astar(lmcut())`). Every action has unit cost, so plan cost equals the number of actions.
 
-| Scenario | Configuration | Plan length / cost | States expanded | Search time | Total planner time |
+| Scenario | Configuration | Plan length = total actions = cost | States expanded | Search time | Total planner time |
 |---|---|---:|---:|---:|---:|
 | Original | Satisficing: GBFS + FF | 33 | 122 | 0.0021 s | 0.22 s |
 | Original | Optimal: A* + LM-cut | 25 | 6,828 | 0.5471 s | 0.73 s |
@@ -160,6 +163,16 @@ Search time is the planner's reported search-only time. Total planner time inclu
 Each of the four plan files was replayed from the initial state in its matching problem file. At every step, the action's positive preconditions were checked before applying its add and delete effects. All four plans passed: no action was attempted when its preconditions were false, and each resulting final state satisfied the complete goal conjunction.
 
 In the original scenario, Rock1–Rock5 are at Base. In the extended scenario, Rock1–Rock7 are at Base. In all four final states, `bay-empty bay1`, `bay-empty bay2`, and `rover-at curiosity base` are true. The rover still has the drill, which is allowed because the goal does not require it to be returned. VAL was not used; verification was performed by step-by-step state replay.
+
+### Task 5 – Extended scenario
+
+The extended instance is modelled separately in `Problem_extended.pddl`; the domain file is unchanged because the same actions and predicates still describe the rover's behaviour. The following modifications are made to the original problem:
+
+- **New samples:** Rock6 is added as a soft rock at SiteE, and Rock7 as a hard rock at SiteF. Their initial facts are `(rock-at rock6 sitee)`, `(soft rock6)`, `(rock-at rock7 sitef)`, and `(hard rock7)`.
+- **Dust-storm closure:** the two directed connectivity facts for the Base↔SiteB route, `(connected base siteb)` and `(connected siteb base)`, are omitted. The SiteB↔SiteD connection remains available.
+- **Goal update:** the goal now requires Rock1–Rock7 to be at Base, both bays to be empty, and Curiosity to finish at Base.
+
+The extended problem was run with both search configurations. Greedy Best-First Search with the FF heuristic generated a 46-action plan (`extended_greedy.plan`); A* with LM-cut generated a 40-action plan (`extended_astar.plan`). Their complete Fast Downward logs are `extended_greedy.txt` and `extended_astar.txt`. The corresponding search statistics are reported in Task 3, and both plans passed the step-by-step goal verification described in Task 4.
 
 ### Task 6 – Plan analysis
 
@@ -185,8 +198,12 @@ File: `problem3/royal_archive_access.pl` (follows the 8-step structure of the Ar
 2. `¬trusted(X) ∨ ¬access(X,R) ∨ ¬sealed(R) ∨ permitted(X,R)` (not needed)
 3. `¬inspects(X,R) ∨ ¬finds_mark(X,R) ∨ verifies(X,R)`
 4. `¬stored_in_archive(R) ∨ sealed(R)` (not needed)
-5–8. `stored_in_archive(scroll_7)`, `access(mira,scroll_7)`, `inspects(mira,scroll_7)`, `finds_mark(mira,scroll_7)`, `archivist(mira)`
-9. `¬trusted(mira)` (negated goal)
+5. `stored_in_archive(scroll_7)`
+6. `access(mira,scroll_7)`
+7. `inspects(mira,scroll_7)`
+8. `finds_mark(mira,scroll_7)`
+9. `archivist(mira)`
+10. `¬trusted(mira)` (negated goal)
 
 **Proof chain.** Rules 2 and 4, and the facts `stored_in_archive` and `access`, are distractors (they lead to `permitted`/`sealed`, never to `trusted`).
 - (3) + `inspects(mira,scroll_7)` → `¬finds_mark(mira,scroll_7) ∨ verifies(mira,scroll_7)`
@@ -195,6 +212,7 @@ File: `problem3/royal_archive_access.pl` (follows the 8-step structure of the Ar
 - + `archivist(mira)` → `¬verifies(mira,R)`
 - + `verifies(mira,scroll_7)` → **[]** (empty clause), so Mira is trusted.
 
+
 The program searches for this itself with a given-clause resolution loop (renaming variables, using Prolog unification) and prints the clauses and resolvents actually used, in order. It may produce extra resolvents during the search, but only the ancestors of `[]` are printed.
 
-**Not executed.** SWI-Prolog was not available here, so `royal_archive_access.pl` has **not been run**. A Python re-implementation of the same algorithm confirmed that it derives the empty clause. Run `?- [royal_archive_access]. ?- run.` and take the required screenshot of the final output yourself. If SWI-Prolog reports any syntax issue, tell me the message and I will fix it.
+**Executed on SWI Prolog.**
