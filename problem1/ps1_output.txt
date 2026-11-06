@@ -1,0 +1,140 @@
+======================================================================
+PART A: EXPERT BAYESIAN NETWORK
+======================================================================
+A.2 CPT validity (all rows sum to 1): True
+A.3 Network drawing saved to bn_structure.png
+
+A.4 Expert-model query results
+  Q1: P({'Energy': 'High'} | {}) = 0.580631
+  Q2: P({'Energy': 'High'} | {'Weather': 'Hot'}) = 0.706266
+  Q3: P({'Energy': 'High'} | {'DayType': 'Weekend'}) = 0.640199
+  Q4: P({'Energy': 'High'} | {'Weather': 'Cold', 'Occupancy': 'High'}) = 0.484250
+  Q5: P({'Weather': 'Hot'} | {'Energy': 'High'}) = 0.608188
+  Q6: P({'AC': 'On'} | {'Energy': 'High'}) = 0.692867
+  Q7: P({'AC': 'On'} | {'Energy': 'High', 'ApplianceLoad': 'Heavy'}) = 0.649899
+
+A.5 Q6 = 0.6929  vs  Q7 = 0.6499  (change -0.0430)
+  Heavy appliance load is itself a likely cause of High energy, so once
+  it is known, High energy needs less 'help' from the AC -> AC=On drops.
+
+A.6 Q1 by summation (code check of the hand calculation)
+  P(O=High) = 0.555  P(O=Low) = 0.445
+  P(AC=On|O=High) = 0.59  P(AC=On|O=Low) = 0.355
+  P(A=On ,L=Heavy) = 0.30087875  x P(E=High|..)=0.92  -> 0.27680845
+  P(A=On ,L=Light) = 0.18454625  x P(E=High|..)=0.68  -> 0.12549145
+  P(A=Off,L=Heavy) = 0.27112125  x P(E=High|..)=0.55  -> 0.14911669
+  P(A=Off,L=Light) = 0.24345375  x P(E=High|..)=0.12  -> 0.02921445
+  Q1 by hand-sum = 0.58063104 ; Q1 by code = 0.58063104 ; match = True
+
+======================================================================
+PART B: CONDITIONAL INDEPENDENCE
+======================================================================
+B.1 Weather _||_ DayType | []: d-separated = True
+     P(W=Hot) = 0.500000   P(W=Hot | D=Weekend) = 0.500000   equal = True
+B.2 Weather _||_ DayType | ['Energy']: d-separated = False
+     P(W=Hot | E=High) = 0.608188   P(W=Hot | E=High, D=Weekend) = 0.599751   equal = False
+B.3 Weather _||_ ApplianceLoad | ['Occupancy']: d-separated = True
+     P(W=Hot | O=High) = 0.500000   P(W=Hot | O=High, L=Heavy) = 0.500000   equal = True
+
+======================================================================
+PART C: SYNTHETIC DATA (seed =42)
+======================================================================
+
+N = 500
+  Weather empirical frequency: {'Hot': 0.5, 'Mild': 0.278, 'Cold': 0.222}
+  (Weather, Occupancy) counts:
+    Hot {'High': 144, 'Low': 106}
+    Mild {'High': 78, 'Low': 61}
+    Cold {'High': 56, 'Low': 55}
+
+N = 5000
+  Weather empirical frequency: {'Hot': 0.502, 'Mild': 0.2904, 'Cold': 0.2076}
+  (Weather, Occupancy) counts:
+    Hot {'High': 1416, 'Low': 1094}
+    Mild {'High': 830, 'Low': 622}
+    Cold {'High': 559, 'Low': 479}
+
+N = 20000
+  Weather empirical frequency: {'Hot': 0.501, 'Mild': 0.2969, 'Cold': 0.2021}
+  (Weather, Occupancy) counts:
+    Hot {'High': 5606, 'Low': 4415}
+    Mild {'High': 3327, 'Low': 2610}
+    Cold {'High': 2222, 'Low': 1820}
+
+======================================================================
+PART D/E: LEARNING AND COMPARISON
+======================================================================
+
+--- Dataset size 500 ---
+D.3 AC CPT  P(AC=On | Weather, Occupancy):
+  Weather Occ       Expert       MLE      BDeu
+  Hot     High      0.9000    0.8819    0.8776
+  Hot     Low       0.6000    0.6226    0.6207
+  Mild    High      0.4000    0.4487    0.4498
+  Mild    Low       0.1500    0.1803    0.1888
+  Cold    High      0.1000    0.0536    0.0665
+  Cold    Low       0.0500    0.0182    0.0324
+
+  Query    Expert      MLE    Bayes  |Diff|MLE  |Diff|Bayes
+  Q1       0.5806   0.5905   0.5888     0.0099       0.0082
+  Q2       0.7063   0.7003   0.6951     0.0060       0.0112
+  Q3       0.6402   0.6493   0.6434     0.0091       0.0032
+  Q4       0.4843   0.5073   0.5100     0.0230       0.0257
+  Q5       0.6082   0.5929   0.5863     0.0153       0.0218
+  Q6       0.6929   0.6619   0.6589     0.0310       0.0340
+  Q7       0.6499   0.6326   0.6305     0.0173       0.0194
+  Mean |Diff|: MLE=0.01592  Bayesian=0.01765
+  Largest MLE error: Q6 (0.0310)
+  Evidence counts in the 500-sample data:
+    Q1: evidence (none) occurs 500 times
+    Q2: evidence {'Weather': 'Hot'} occurs 250 times
+    Q3: evidence {'DayType': 'Weekend'} occurs 146 times
+    Q4: evidence {'Weather': 'Cold', 'Occupancy': 'High'} occurs 56 times
+    Q5: evidence {'Energy': 'High'} occurs 296 times
+    Q6: evidence {'Energy': 'High'} occurs 296 times
+    Q7: evidence {'Energy': 'High', 'ApplianceLoad': 'Heavy'} occurs 216 times
+
+--- Dataset size 5000 ---
+D.3 AC CPT  P(AC=On | Weather, Occupancy):
+  Weather Occ       Expert       MLE      BDeu
+  Hot     High      0.9000    0.8948    0.8943
+  Hot     Low       0.6000    0.6069    0.6068
+  Mild    High      0.4000    0.3952    0.3954
+  Mild    Low       0.1500    0.1576    0.1585
+  Cold    High      0.1000    0.0948    0.0960
+  Cold    Low       0.0500    0.0543    0.0558
+
+  Query    Expert      MLE    Bayes  |Diff|MLE  |Diff|Bayes
+  Q1       0.5806   0.5874   0.5872     0.0067       0.0066
+  Q2       0.7063   0.7168   0.7162     0.0105       0.0099
+  Q3       0.6402   0.6468   0.6462     0.0066       0.0060
+  Q4       0.4843   0.4846   0.4850     0.0004       0.0007
+  Q5       0.6082   0.6126   0.6119     0.0044       0.0037
+  Q6       0.6929   0.6957   0.6953     0.0028       0.0024
+  Q7       0.6499   0.6511   0.6508     0.0012       0.0009
+  Mean |Diff|: MLE=0.00466  Bayesian=0.00432
+  Largest MLE error: Q2 (0.0105)
+
+--- Dataset size 20000 ---
+D.3 AC CPT  P(AC=On | Weather, Occupancy):
+  Weather Occ       Expert       MLE      BDeu
+  Hot     High      0.9000    0.8955    0.8954
+  Hot     Low       0.6000    0.6007    0.6006
+  Mild    High      0.4000    0.3980    0.3980
+  Mild    Low       0.1500    0.1533    0.1535
+  Cold    High      0.1000    0.1026    0.1029
+  Cold    Low       0.0500    0.0549    0.0554
+
+  Query    Expert      MLE    Bayes  |Diff|MLE  |Diff|Bayes
+  Q1       0.5806   0.5866   0.5865     0.0059       0.0059
+  Q2       0.7063   0.7117   0.7116     0.0055       0.0053
+  Q3       0.6402   0.6452   0.6451     0.0050       0.0049
+  Q4       0.4843   0.4899   0.4899     0.0056       0.0057
+  Q5       0.6082   0.6080   0.6078     0.0002       0.0004
+  Q6       0.6929   0.6913   0.6912     0.0016       0.0017
+  Q7       0.6499   0.6492   0.6491     0.0007       0.0008
+  Mean |Diff|: MLE=0.00351  Bayesian=0.00352
+  Largest MLE error: Q1 (0.0059)
+
+E.1 Plot saved to error_vs_size.png
+Mean errors: {'MLE': [np.float64(0.01592), np.float64(0.00466), np.float64(0.00351)], 'Bayesian': [np.float64(0.01765), np.float64(0.00432), np.float64(0.00352)]}
